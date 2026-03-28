@@ -6,39 +6,38 @@
 
 ## 🚀 Key Features
 
-### 1. Interactive 3D Globe Explorer
+### 1. 🏥 Advanced Healthcare Supply Chain Management (B2B & Logistics)
+Artha leverages cutting-edge AI to optimize the pharmaceutical and medical supply chain, ensuring life-saving resources reach their destination efficiently.
+*   **🚚 Smart Logistics & Route Optimization:** AI-powered medicine route analysis using Gemini's reasoning. It calculates the most efficient delivery paths based on real-time environmental data, distance, and urgency.
+*   **🏥 Medical Partner Network:** A centralized B2B hub for healthcare providers and pharmaceutical partners. It facilitates seamless collaboration and resource sharing across the medical ecosystem.
+*   **📊 Partner Analytics & Intelligence:** Real-time data visualization for partners to track supply chain efficiency, user engagement, and health trends, enabling data-driven decision-making.
+*   **📦 Real-Time Delivery Tracking:** A transparent tracking interface for medical supplies and prescriptions, providing end-to-end visibility in the health supply chain.
+
+### 2. 🌍 Interactive 3D Globe Explorer
 *   **Visual Exploration:** A high-fidelity 3D globe (`react-globe.gl`) allowing users to explore any point on Earth with smooth animations and interactive markers.
-*   **City Health Snapshots:** Click on major cities to generate a real-time public health report derived from current web data (using **Google Search Grounding**). Includes disease trends, case estimates, and summaries.
-*   **Location Analysis:** Click any coordinate to generate a localized environmental hazard report and a synthetic satellite visualization of that specific biome using **Imagen 4.0**.
-*   **Facility Finder:** Automatically locates the 5 closest Hospitals, Clinics, and Pharmacies based on the user's precise GPS coordinates using **Google Maps Grounding**.
-*   **Geocoding:** Integrated search bar to fly to specific locations instantly with high-accuracy coordinates.
+*   **City Health Snapshots:** Click on major cities to generate a real-time public health report derived from current web data (using **Google Search Grounding**).
+*   **Location Analysis:** Click any coordinate to generate a localized environmental hazard report and a synthetic satellite visualization using **Imagen 4.0**.
+*   **Facility Finder:** Automatically locates the 5 closest Hospitals, Clinics, and Pharmacies based on precise GPS coordinates using **Google Maps Grounding**.
 
-### 2. AI Analysis Suite
-*   **🩺 Advanced Symptom Checker:** A voice-enabled interface with a sophisticated **4-Level Triage System** (Emergency, Urgent, Routine, Home Care). Provides color-coded visual feedback, potential conditions for discussion, and actionable next steps.
-*   **📸 Area Scan (Image Analysis):** Upload photos of your surroundings. The AI identifies potential health hazards (e.g., stagnant water, pollution) and suggests preventive measures.
+### 3. 🩺 AI Analysis & Clinical Suite
+*   **Advanced Symptom Checker:** A voice-enabled interface with a sophisticated **4-Level Triage System**. Provides color-coded visual feedback and actionable next steps.
+*   **📸 Area Scan (Environmental Intelligence):** Upload photos of surroundings to identify potential health hazards (e.g., stagnant water, pollution) using computer vision.
 *   **📜 Prescription Reader:** Powered by a "Clinical Pharmacist" persona, it extracts medicine names, dosages, and precautions from images into a legible summary.
-*   **🧠 Mental Wellness Check-in:** A compassionate, non-clinical wellness assistant that provides supportive reflection and coping strategies based on user responses.
-*   **🏥 Personalized Health Visit:** A dedicated checkup interface featuring an integrated health assessment form for personalized medical consultations.
+*   **🧠 Mental Wellness Check-in:** A compassionate wellness assistant providing supportive reflection and coping strategies.
 
-### 3. Medical Network & Logistics (New)
-*   **🏥 Medical Network:** A centralized hub to connect with medical partners and healthcare providers. View partner analytics, manage connections, and expand your health ecosystem.
-*   **🚚 Smart Logistics:** AI-powered medicine route analysis. Enter origin and destination to get the best delivery routes, estimated times, and expert logistics analysis.
-*   **📦 Delivery Tracking:** Real-time tracking interface for medical supplies and prescriptions, ensuring transparency in the health supply chain.
+### 4. ⚡ Real-Time Health Intelligence
+*   **HealthCast:** A daily, location-based health forecast analyzing risk factors like Air Quality, UV Index, Pollen, and Mosquito activity.
+*   **Live Health Alerts:** Aggregates significant global and local disease outbreaks or environmental threats using **Google Search Grounding**.
 
-### 4. Real-Time Health Intelligence
-*   **HealthCast:** A daily, location-based health forecast analyzing risk factors like Air Quality, UV Index, Pollen, and Mosquito activity using real-time data.
-*   **Live Health Alerts:** Aggregates and displays significant global and local disease outbreaks or environmental threats using **Google Search Grounding**.
-
-### 5. Personal Health Utilities
-*   **💧 Water Log:** A hydration tracker with customizable goals and browser-based push notifications for drink reminders.
-*   **📊 Activity Dashboard:** Visual widgets for tracking weekly activity trends and hydration progress at a glance.
+### 5. 📊 Personal Health Utilities & Dashboards
+*   **💧 Water Log:** A hydration tracker with customizable goals and browser-based push notifications.
+*   **📈 Activity Dashboard:** Visual widgets for tracking weekly activity trends and hydration progress at a glance.
 *   **Activity History:** A cloud-synced log of all AI analyses performed by the user for future reference.
-*   **Profile Management:** Manage personal details, gender, and location preferences.
 
-### 6. Advanced UI/UX
-*   **AI Chatbot:** A persistent, voice-capable assistant that can answer health questions and **navigate the app** via voice commands (e.g., "Take me to the symptom checker").
+### 6. 🛠 Advanced UI/UX & Admin
+*   **AI Chatbot:** A persistent, voice-capable assistant that can answer health questions and **navigate the app** via voice commands.
 *   **Admin Dashboard:** A comprehensive dashboard for viewing all registered users and global activity logs, with "Sync All" capabilities to Supabase.
-*   **Multilingual Support:** Full UI and AI response support for **15+ languages**, including Hindi, Telugu, Bengali, Tamil, and more.
+*   **Multilingual Support:** Full UI and AI response support for **15+ languages**.
 
 ---
 

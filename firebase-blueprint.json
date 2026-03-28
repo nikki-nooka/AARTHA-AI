@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "Partner": {
+      "title": "Partner",
+      "description": "A hospital partner organization",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the hospital partner" },
+        "description": { "type": "string", "description": "Description of the partner" },
+        "logoUrl": { "type": "string", "description": "URL to the partner's logo" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the partner was added" }
+      },
+      "required": ["name"]
+    },
+    "Branch": {
+      "title": "Branch",
+      "description": "A specific branch of a hospital partner",
+      "type": "object",
+      "properties": {
+        "partnerId": { "type": "string", "description": "ID of the parent partner" },
+        "name": { "type": "string", "description": "Name of the branch" },
+        "location": { "type": "string", "description": "Physical address or location name" },
+        "lat": { "type": "number", "description": "Latitude coordinate" },
+        "lng": { "type": "number", "description": "Longitude coordinate" },
+        "contact": { "type": "string", "description": "Contact information for the branch" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the branch was added" }
+      },
+      "required": ["partnerId", "name", "location"]
+    }
+  },
+  "firestore": {
+    "/partners": {
+      "schema": "Partner",
+      "description": "Collection of hospital partners"
+    },
+    "/partners/{partnerId}/branches": {
+      "schema": "Branch",
+      "description": "Subcollection of branches for a specific partner"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: partners
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (optional)
+    //   - logoUrl: string (optional)
+    //   - createdAt: string (optional)
+    //
+    // Subcollection: partners/{partnerId}/branches
+    // Document ID: auto-generated
+    // Fields:
+    //   - partnerId: string (required)
+    //   - name: string (required)
+    //   - location: string (required)
+    //   - lat: number (optional)
+    //   - lng: number (optional)
+    //   - contact: string (optional)
+    //   - createdAt: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "likhithapacha4@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidPartner(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 500)) &&
+             (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() < 500));
+    }
+
+    function isValidBranch(data) {
+      return data.partnerId is string && data.partnerId.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.location is string && data.location.size() > 0 && data.location.size() < 200 &&
+             (!('lat' in data) || data.lat is number) &&
+             (!('lng' in data) || data.lng is number) &&
+             (!('contact' in data) || (data.contact is string && data.contact.size() < 100));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /partners/{partnerId} {
+      allow read: if true;
+      allow create: if isAdmin() && hasRequiredFields(['name']) && isValidPartner(request.resource.data);
+      allow update: if isAdmin() && isValidPartner(request.resource.data);
+      allow delete: if isAdmin();
+
+      match /branches/{branchId} {
+        allow read: if true;
+        allow create: if isAdmin() && hasRequiredFields(['partnerId', 'name', 'location']) && isValidBranch(request.resource.data);
+        allow update: if isAdmin() && isValidBranch(request.resource.data);
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "name": "MAHADEV-PARVATHI DEVI",
+  "description": "A comprehensive health analysis and monitoring application."
+}

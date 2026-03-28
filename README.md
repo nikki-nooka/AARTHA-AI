@@ -1,14 +1,6 @@
-# Artha: AI-Powered Environmental Health Intelligence
+# Artha: AI-Powered Environmental Health Intelligence 🌍
 
-**Translating complex environmental data into clear, actionable health intelligence to empower communities and preempt public health threats.**
-
----
-
-## 🌍 Overview
-
-Artha is a sophisticated, AI-driven web application designed to bridge the critical gap between environmental factors and public health. By leveraging Google's **Gemini 3 Flash** and **Imagen 4** models, Artha provides users with real-time, location-specific health insights, proactive hazard detection, and personalized wellness tools.
-
-The platform operates on a hybrid architecture using **Local Storage** for rapid prototyping and **Firebase** for cloud-ready data persistence and security rules.
+**Artha** (also known as **GeoSick**) is a sophisticated, AI-driven web application designed to bridge the critical gap between environmental factors and public health. By leveraging Google's **Gemini 3 Flash** and **Imagen 4** models, Artha provides users with real-time, location-specific health insights, proactive hazard detection, and personalized wellness tools.
 
 ---
 
@@ -34,145 +26,120 @@ The platform operates on a hybrid architecture using **Local Storage** for rapid
 
 ### 4. Personal Health Utilities
 *   **💧 Water Log:** A hydration tracker with customizable goals and browser-based push notifications for drink reminders.
-*   **Activity History:** A local log of all AI analyses performed by the user for future reference.
-*   **Profile Management:** Manage personal details and change passwords locally.
+*   **Activity History:** A cloud-synced log of all AI analyses performed by the user for future reference.
+*   **Profile Management:** Manage personal details, gender, and location preferences.
 
 ### 5. Advanced UI/UX
 *   **AI Chatbot:** A persistent, voice-capable assistant that can answer health questions and **navigate the app** via voice commands (e.g., "Take me to the symptom checker").
-    *   **Voice-First Responsiveness:** Features auto-send on silence detection, smart voice output (always speaks back to voice input), and visual "speaking" indicators.
-*   **Admin Dashboard:** A comprehensive dashboard for viewing all registered users and global activity logs. *Note: For the current demo phase, all signed-up users are granted admin access.*
-*   **Multilingual Support:** Full UI and AI response support for **15+ languages**, including major Indic languages (Hindi, Telugu, Bengali, Tamil, etc.).
+*   **Admin Dashboard:** A comprehensive dashboard for viewing all registered users and global activity logs, with "Sync All" capabilities to Supabase.
+*   **Multilingual Support:** Full UI and AI response support for **15+ languages**, including Hindi, Telugu, Bengali, Tamil, and more.
 
 ---
 
-## 🛠 Supabase Integration (New)
+## 🛠 Tech Stack
 
-The app is now integrated with Supabase for centralized data storage and "pin-to-pinpoint" action tracking.
-
-### Setup Instructions
-
-1.  **Create a Supabase Project:** Go to [supabase.com](https://supabase.com) and create a new project.
-2.  **Run SQL in Supabase SQL Editor:**
-    ```sql
-    -- 1. Create users table
-    CREATE TABLE IF NOT EXISTS users (
-        phone TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT,
-        password TEXT NOT NULL,
-        date_of_birth TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        last_login_at TIMESTAMP WITH TIME ZONE,
-        is_admin BOOLEAN DEFAULT FALSE
-    );
-
-    -- 2. Create activity_history table
-    CREATE TABLE IF NOT EXISTS activity_history (
-        id BIGSERIAL PRIMARY KEY,
-        user_phone TEXT REFERENCES users(phone),
-        type TEXT NOT NULL,
-        title TEXT NOT NULL,
-        data JSONB,
-        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-
-    -- 3. Create water_log table
-    CREATE TABLE IF NOT EXISTS water_log (
-        id BIGSERIAL PRIMARY KEY,
-        user_phone TEXT REFERENCES users(phone),
-        amount INTEGER NOT NULL,
-        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-    );
-
-    -- 4. Enable Row Level Security (RLS)
-    ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-    ALTER TABLE activity_history ENABLE ROW LEVEL SECURITY;
-    ALTER TABLE water_log ENABLE ROW LEVEL SECURITY;
-
-    -- 5. Create Policies (Allow all for simplicity)
-    CREATE POLICY "Allow all access to users" ON users FOR ALL USING (true);
-    CREATE POLICY "Allow all access to activity_history" ON activity_history FOR ALL USING (true);
-    CREATE POLICY "Allow all access to water_log" ON water_log FOR ALL USING (true);
-    ```
-3.  **Environment Variables:** Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to your `.env` file (see `.env.example`).
-
-Artha is built with a modern, performance-oriented stack:
-
-*   **Frontend Framework:** React 19 with TypeScript.
-*   **Build Tool:** Vite.
-*   **Styling:** Tailwind CSS with custom animations.
-*   **Artificial Intelligence:**
-    *   **SDK:** `@google/genai`
-    *   **Text & Multimodal:** `gemini-3-flash-preview` (Used for analysis, chat, and search grounding).
-    *   **Image Generation:** `imagen-4.0-generate-001` (Used for location visualization).
-    *   **Search Grounding:** Integrated `googleSearch` and `googleMaps` tools for retrieving real-time world events and health data.
-*   **Visualization:** `react-globe.gl` and `three.js`.
-*   **Backend & Security:**
-    *   **Firebase:** Configured for Firestore database and Authentication.
-    *   **Security Rules:** Prototype rules implemented to protect user data and manage roles.
-    *   **Local Storage:** Used for rapid client-side data handling and session management.
-*   **Browser APIs:** Web Speech API (Voice Input/Output), Geolocation API, Notification API.
+*   **Frontend:** React 19, TypeScript, Vite.
+*   **Styling:** Tailwind CSS (v4), Lucide Icons.
+*   **Animations:** Motion (Framer Motion).
+*   **AI Models:** 
+    *   **Gemini 3 Flash:** Core reasoning, chat, and search grounding.
+    *   **Imagen 4.0:** Biome visualization.
+*   **Database & Backend:** 
+    *   **Supabase:** Cloud-sync for users, activity logs, and water data.
+    *   **Local Storage:** Primary data store for offline-first responsiveness.
+*   **APIs:** Google Search Grounding, Google Maps Grounding, Web Speech API.
 
 ---
 
 ## 📦 Installation & Setup
 
-Follow these steps to run Artha locally.
+### 1. Prerequisites
+*   Node.js (v18+)
+*   A Google Gemini API Key (from [AI Studio](https://aistudio.google.com/))
+*   A Supabase Project (from [Supabase](https://supabase.com/))
 
-### Prerequisites
-*   Node.js (v18 or higher)
-*   npm or yarn
-*   A Google Gemini API Key
+### 2. Clone and Install
+```bash
+git clone <your-repo-url>
+cd artha
+npm install
+```
 
-### Steps
+### 3. Environment Variables
+Create a `.env` file or update your AI Studio settings:
+```env
+# Google Gemini API
+VITE_GEMINI_API_KEY=your_gemini_key
 
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/your-username/artha.git
-    cd artha
-    ```
+# Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
 
-2.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
+### 4. Supabase Database Setup
+Run this SQL in your Supabase SQL Editor to create the necessary tables:
 
-3.  **Environment Configuration**
-    Create a `.env` file in the root directory and add your API key.
-    ```env
-    API_KEY=your_actual_google_gemini_api_key
-    ```
-    *Note: Ensure your API key has access to Gemini Flash and Imagen models via Google AI Studio.*
+```sql
+-- 1. Create users table
+CREATE TABLE IF NOT EXISTS users (
+    phone TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT,
+    password TEXT NOT NULL,
+    date_of_birth TEXT,
+    gender TEXT,
+    place TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    is_admin BOOLEAN DEFAULT FALSE
+);
 
-4.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
-    Access the app at `http://localhost:3000`.
+-- 2. Create activity_history table
+CREATE TABLE IF NOT EXISTS activity_history (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_phone TEXT REFERENCES users(phone),
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    data JSONB,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3. Create water_log table
+CREATE TABLE IF NOT EXISTS water_log (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_phone TEXT REFERENCES users(phone),
+    amount INTEGER NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 4. Enable RLS and Policies
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON users FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE activity_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON activity_history FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE water_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all" ON water_log FOR ALL USING (true) WITH CHECK (true);
+```
+
+### 5. Run the App
+```bash
+npm run dev
+```
 
 ---
 
-## 🔐 User & Admin Access (Demo Mode)
-
-**Default Admin Account:**
-*   **Email:** `likhithapacha4@gmail.com`
-*   **Password:** `mahadev`
-
-*Log in with these credentials or create a new account to access the **Admin Dashboard** in the sidebar.*
+## 🔐 Admin Access
+*   **Default Admin:** `likhithapacha4@gmail.com` / `mahadev`
+*   All new signups are currently granted admin access for demo purposes.
 
 ---
 
 ## ⚠️ Medical Disclaimer
-
-**Artha is an informational tool powered by Artificial Intelligence.**
-
-*   It is **NOT** a substitute for professional medical advice, diagnosis, or treatment.
-*   Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
-*   Never disregard professional medical advice or delay in seeking it because of something you have read on this application.
-*   In case of a medical emergency, call your local emergency services immediately.
+Artha is an informational tool powered by AI. It is **NOT** a substitute for professional medical advice, diagnosis, or treatment. In case of a medical emergency, call your local emergency services immediately.
 
 ---
 
 ## 📄 License
-
-This project is open-source and available under the **MIT License**.
+This project is licensed under the **MIT License**.

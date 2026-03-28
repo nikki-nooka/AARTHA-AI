@@ -7,9 +7,10 @@
 ## 🚀 Key Features
 
 ### 1. Interactive 3D Globe Explorer
-*   **Visual Exploration:** A high-fidelity 3D globe (`react-globe.gl`) allowing users to explore any point on Earth.
+*   **Visual Exploration:** A high-fidelity 3D globe (`react-globe.gl`) allowing users to explore any point on Earth with smooth animations and interactive markers.
 *   **City Health Snapshots:** Click on major cities to generate a real-time public health report derived from current web data (using **Google Search Grounding**). Includes disease trends, case estimates, and summaries.
 *   **Location Analysis:** Click any coordinate to generate a localized environmental hazard report and a synthetic satellite visualization of that specific biome using **Imagen 4.0**.
+*   **Facility Finder:** Automatically locates the 5 closest Hospitals, Clinics, and Pharmacies based on the user's precise GPS coordinates using **Google Maps Grounding**.
 *   **Geocoding:** Integrated search bar to fly to specific locations instantly with high-accuracy coordinates.
 
 ### 2. AI Analysis Suite
@@ -19,17 +20,22 @@
 *   **🧠 Mental Wellness Check-in:** A compassionate, non-clinical wellness assistant that provides supportive reflection and coping strategies based on user responses.
 *   **🏥 Personalized Health Visit:** A dedicated checkup interface featuring an integrated health assessment form for personalized medical consultations.
 
-### 3. Real-Time Health Intelligence
+### 3. Medical Network & Logistics (New)
+*   **🏥 Medical Network:** A centralized hub to connect with medical partners and healthcare providers. View partner analytics, manage connections, and expand your health ecosystem.
+*   **🚚 Smart Logistics:** AI-powered medicine route analysis. Enter origin and destination to get the best delivery routes, estimated times, and expert logistics analysis.
+*   **📦 Delivery Tracking:** Real-time tracking interface for medical supplies and prescriptions, ensuring transparency in the health supply chain.
+
+### 4. Real-Time Health Intelligence
 *   **HealthCast:** A daily, location-based health forecast analyzing risk factors like Air Quality, UV Index, Pollen, and Mosquito activity using real-time data.
 *   **Live Health Alerts:** Aggregates and displays significant global and local disease outbreaks or environmental threats using **Google Search Grounding**.
-*   **Facility Finder:** Automatically locates the 5 closest Hospitals, Clinics, and Pharmacies based on the user's precise GPS coordinates using **Google Maps Grounding**.
 
-### 4. Personal Health Utilities
+### 5. Personal Health Utilities
 *   **💧 Water Log:** A hydration tracker with customizable goals and browser-based push notifications for drink reminders.
+*   **📊 Activity Dashboard:** Visual widgets for tracking weekly activity trends and hydration progress at a glance.
 *   **Activity History:** A cloud-synced log of all AI analyses performed by the user for future reference.
 *   **Profile Management:** Manage personal details, gender, and location preferences.
 
-### 5. Advanced UI/UX
+### 6. Advanced UI/UX
 *   **AI Chatbot:** A persistent, voice-capable assistant that can answer health questions and **navigate the app** via voice commands (e.g., "Take me to the symptom checker").
 *   **Admin Dashboard:** A comprehensive dashboard for viewing all registered users and global activity logs, with "Sync All" capabilities to Supabase.
 *   **Multilingual Support:** Full UI and AI response support for **15+ languages**, including Hindi, Telugu, Bengali, Tamil, and more.

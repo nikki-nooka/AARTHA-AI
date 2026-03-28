@@ -22,6 +22,7 @@ import { PartnersPage } from './components/PartnersPage';
 import { Bars3Icon, GlobeIcon } from './components/icons';
 import { FeedbackModal } from './components/FeedbackModal';
 import { I18nProvider } from './components/I18n';
+import { supabase } from './src/lib/supabase';
 
 const ACTIVITY_HISTORY_KEY = 'artha_activity_history';
 const GLOBAL_ACTIVITY_HISTORY_KEY = 'artha_global_activity_history';
@@ -36,7 +37,64 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
+  const syncUserWithSupabase = async (userData: User) => {
+    try {
+        console.log("Supabase Sync: Attempting to sync user:", userData.phone);
+        
+        const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T> => {
+            return Promise.race([
+                promise,
+                new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Supabase request timed out")), timeoutMs))
+            ]);
+        };
+
+        const { data, error } = await withTimeout(supabase
+            .from('users')
+            .upsert({
+                phone: userData.phone,
+                name: userData.name,
+                email: userData.email,
+                password: userData.password,
+                date_of_birth: userData.date_of_birth,
+                gender: userData.gender,
+                place: userData.place,
+                is_admin: userData.isAdmin,
+                last_login_at: userData.last_login_at || new Date().toISOString()
+            }, { onConflict: 'phone' })
+            .select());
+        
+        if (error) {
+            console.error("Supabase Sync Error:", error.message, error.details, error.hint);
+            if (error.message.includes("Invalid API key")) {
+                console.error("HINT: The Supabase Anon Key is invalid. Please check your Supabase Dashboard -> Settings -> API for the correct 'anon' public key. It should be a long JWT starting with 'eyJhbGci...'");
+            }
+            if (error.code === '42501') {
+                console.error("HINT: Row Level Security (RLS) is likely blocking this request. Please add an 'INSERT' and 'UPDATE' policy for 'anon' or 'authenticated' roles on the 'users' table.");
+            }
+        } else {
+            console.log("Supabase Sync Success:", data);
+        }
+    } catch (e) {
+        console.error("Supabase Sync Exception:", e);
+    }
+  };
+
   useEffect(() => {
+    // Test Supabase connection
+    const testSupabase = async () => {
+        try {
+            const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
+            if (error) {
+                console.warn("Supabase connection test warning:", error.message);
+            } else {
+                console.log("Supabase connection test successful.");
+            }
+        } catch (e) {
+            console.error("Supabase connection test failed:", e);
+        }
+    };
+    testSupabase();
+
     // Ensure admin user exists on first load
     try {
         const allUsers: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
@@ -61,7 +119,7 @@ function AppContent() {
     }
 
     // Check for a logged-in user in localStorage
-    const checkSession = () => {
+    const checkSession = async () => {
         try {
             const loggedInUserPhone = localStorage.getItem(SESSION_KEY);
             if (loggedInUserPhone) {
@@ -72,6 +130,9 @@ function AppContent() {
                     const isUserAdmin = true; // Temporary: Grant admin access to all users
                     setUser({ ...userDetails, isAdmin: isUserAdmin });
                     setCurrentPage('welcome');
+                    
+                    // Sync with Supabase on session check
+                    await syncUserWithSupabase(currentUser);
                 } else {
                     localStorage.removeItem(SESSION_KEY);
                 }
@@ -96,12 +157,25 @@ function AppContent() {
     }
   }, []);
 
-  const addGlobalActivityToHistory = (item: ActivityLogItem) => {
+  const addGlobalActivityToHistory = async (item: ActivityLogItem) => {
       try {
           const stored = localStorage.getItem(GLOBAL_ACTIVITY_HISTORY_KEY);
           const globalHistory: ActivityLogItem[] = stored ? JSON.parse(stored) : [];
           const newGlobalHistory = [item, ...(Array.isArray(globalHistory) ? globalHistory : [])];
           localStorage.setItem(GLOBAL_ACTIVITY_HISTORY_KEY, JSON.stringify(newGlobalHistory));
+          
+          // Sync with Supabase
+          const { error } = await supabase
+              .from('activity_history')
+              .insert({
+                  user_phone: item.userPhone,
+                  type: item.type,
+                  title: item.title,
+                  data: item.data,
+                  timestamp: new Date(item.timestamp).toISOString()
+              });
+          
+          if (error) console.error("Supabase activity sync error:", error);
       } catch (error) {
            console.error("Could not save global activity to localStorage:", error);
       }
@@ -129,7 +203,7 @@ function AppContent() {
       addGlobalActivityToHistory(newActivity);
   };
   
-  const handleUpdateUser = (updatedDetails: Partial<User>) => {
+  const handleUpdateUser = async (updatedDetails: Partial<User>) => {
     if (!user) return false;
     
     try {
@@ -143,6 +217,10 @@ function AppContent() {
             
             const { password, ...userDetails } = updatedUser;
             setUser(userDetails);
+
+            // Sync with Supabase using the shared function
+            await syncUserWithSupabase(updatedUser);
+
             return true;
         }
         return false;
@@ -153,15 +231,16 @@ function AppContent() {
   };
 
 
-  const handleAuthSuccess = (authedUser: User) => {
+  const handleAuthSuccess = async (authedUser: User) => {
     // Update last_login_at for the user who just logged in.
     let userWithTimestamp = { ...authedUser };
+    const now = new Date().toISOString();
+    
     try {
         const allUsers: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
         const userIndex = allUsers.findIndex(u => u.phone === authedUser.phone);
         
         if (userIndex !== -1) {
-            const now = new Date().toISOString();
             allUsers[userIndex].last_login_at = now;
             localStorage.setItem(USERS_KEY, JSON.stringify(allUsers));
             userWithTimestamp.last_login_at = now; // Ensure state has latest login time
@@ -169,6 +248,9 @@ function AppContent() {
     } catch (error) {
         console.error("Failed to update last login time:", error);
     }
+
+    // Sync user with Supabase
+    await syncUserWithSupabase(userWithTimestamp);
     
     const { password, ...userDetails } = userWithTimestamp;
     setUser(userDetails);
@@ -194,24 +276,31 @@ function AppContent() {
   };
 
   const handleNavigation = (page: Page) => {
-      setCurrentPage(page);
+    if (user) {
+        addActivityToHistory({
+            type: 'navigation',
+            title: `Navigated to ${page}`,
+            data: { page }
+        });
+    }
+    setCurrentPage(page);
   };
   
   const renderPublicPages = () => {
     switch (currentPage) {
         case 'about':
-            return <AboutPage onBack={() => setCurrentPage('home')} />;
+            return <AboutPage onBack={() => handleNavigation('home')} />;
         case 'contact':
-            return <ContactPage onBack={() => setCurrentPage('home')} />;
+            return <ContactPage onBack={() => handleNavigation('home')} />;
         case 'explore':
-             return <GlobePage onBack={() => setCurrentPage('home')} />;
+             return <GlobePage onBack={() => handleNavigation('home')} />;
         case 'home':
         default:
             return <HomePage
                 onLoginClick={() => setShowAuth(true)}
-                onAboutClick={() => setCurrentPage('about')}
-                onContactClick={() => setCurrentPage('contact')}
-                onExploreClick={() => setCurrentPage('explore')}
+                onAboutClick={() => handleNavigation('about')}
+                onContactClick={() => handleNavigation('contact')}
+                onExploreClick={() => handleNavigation('explore')}
             />;
     }
   }
@@ -227,54 +316,54 @@ function AppContent() {
             case 'home': // Redirect home to welcome if logged in
                 return <WelcomePage
                     user={user}
-                    onAnalyze={() => setCurrentPage('image-analysis')}
-                    onAnalyzePrescription={() => setCurrentPage('prescription-analysis')}
-                    onAnalyzeMentalHealth={() => setCurrentPage('mental-health')}
-                    onCheckSymptoms={() => setCurrentPage('symptom-checker')}
-                    onWaterLog={() => setCurrentPage('water-log')}
-                    onNavigateToPartners={() => setCurrentPage('partners')}
+                    onAnalyze={() => handleNavigation('image-analysis')}
+                    onAnalyzePrescription={() => handleNavigation('prescription-analysis')}
+                    onAnalyzeMentalHealth={() => handleNavigation('mental-health')}
+                    onCheckSymptoms={() => handleNavigation('symptom-checker')}
+                    onWaterLog={() => handleNavigation('water-log')}
+                    onNavigateToPartners={() => handleNavigation('partners')}
                 />;
             case 'image-analysis':
                 return <ImageAnalysisPage
-                    onBack={() => setCurrentPage('welcome')}
-                    onScheduleCheckup={() => setCurrentPage('checkup')}
+                    onBack={() => handleNavigation('welcome')}
+                    onScheduleCheckup={() => handleNavigation('checkup')}
                     onAnalysisComplete={addActivityToHistory}
                 />;
             case 'prescription-analysis':
-                return <PrescriptionAnalysisPage onBack={() => setCurrentPage('welcome')} onAnalysisComplete={addActivityToHistory} />;
+                return <PrescriptionAnalysisPage onBack={() => handleNavigation('welcome')} onAnalysisComplete={addActivityToHistory} />;
             case 'checkup':
-                return <CheckupPage onBack={() => setCurrentPage('image-analysis')} />;
+                return <CheckupPage onBack={() => handleNavigation('image-analysis')} />;
             case 'mental-health':
-                return <MentalHealthPage onBack={() => setCurrentPage('welcome')} onAnalysisComplete={addActivityToHistory} />;
+                return <MentalHealthPage onBack={() => handleNavigation('welcome')} onAnalysisComplete={addActivityToHistory} />;
             case 'symptom-checker':
-                return <SymptomCheckerPage onBack={() => setCurrentPage('welcome')} onAnalysisComplete={addActivityToHistory} />;
+                return <SymptomCheckerPage onBack={() => handleNavigation('welcome')} onAnalysisComplete={addActivityToHistory} />;
             case 'health-briefing': 
-                 return <HealthForecast onBack={() => setCurrentPage('welcome')} />;
+                 return <HealthForecast onBack={() => handleNavigation('welcome')} />;
             case 'activity-history':
-                 return <ActivityHistoryPage history={activityHistory} onBack={() => setCurrentPage('welcome')} />;
+                 return <ActivityHistoryPage history={activityHistory} onBack={() => handleNavigation('welcome')} />;
             case 'profile':
-                return <ProfilePage user={user} onBack={() => setCurrentPage('welcome')} onUpdateUser={handleUpdateUser} />;
+                return <ProfilePage user={user} onBack={() => handleNavigation('welcome')} onUpdateUser={handleUpdateUser} />;
             case 'water-log':
-                return <WaterLogPage onBack={() => setCurrentPage('welcome')} />;
+                return <WaterLogPage user={user} onBack={() => handleNavigation('welcome')} />;
             case 'partners':
-                return <PartnersPage user={user} onBack={() => setCurrentPage('welcome')} isAdmin={isUserAdmin} />;
+                return <PartnersPage user={user} onBack={() => handleNavigation('welcome')} isAdmin={isUserAdmin} />;
             case 'admin-dashboard':
-                return isUserAdmin ? <AdminDashboardPage onBack={() => setCurrentPage('welcome')} /> : <p>Access Denied. You do not have permission to view this page.</p>;
+                return isUserAdmin ? <AdminDashboardPage onBack={() => handleNavigation('welcome')} /> : <p>Access Denied. You do not have permission to view this page.</p>;
             case 'about':
-                 return <AboutPage onBack={() => setCurrentPage('welcome')} />;
+                 return <AboutPage onBack={() => handleNavigation('welcome')} />;
             case 'contact':
-                return <ContactPage onBack={() => setCurrentPage('welcome')} />;
+                return <ContactPage onBack={() => handleNavigation('welcome')} />;
             case 'explore':
-                return <GlobePage onBack={() => setCurrentPage('welcome')} />;
+                return <GlobePage onBack={() => handleNavigation('welcome')} />;
             default:
                 return <WelcomePage
                     user={user}
-                    onAnalyze={() => setCurrentPage('image-analysis')}
-                    onAnalyzePrescription={() => setCurrentPage('prescription-analysis')}
-                    onAnalyzeMentalHealth={() => setCurrentPage('mental-health')}
-                    onCheckSymptoms={() => setCurrentPage('symptom-checker')}
-                    onWaterLog={() => setCurrentPage('water-log')}
-                    onNavigateToPartners={() => setCurrentPage('partners')}
+                    onAnalyze={() => handleNavigation('image-analysis')}
+                    onAnalyzePrescription={() => handleNavigation('prescription-analysis')}
+                    onAnalyzeMentalHealth={() => handleNavigation('mental-health')}
+                    onCheckSymptoms={() => handleNavigation('symptom-checker')}
+                    onWaterLog={() => handleNavigation('water-log')}
+                    onNavigateToPartners={() => handleNavigation('partners')}
                 />;
         }
     };
@@ -315,7 +404,7 @@ function AppContent() {
   return (
     <>
       {user ? renderAuthenticatedApp() : renderPublicPages()}
-      {user && <ChatBot onNavigate={handleNavigation} />}
+      {user && <ChatBot onNavigate={handleNavigation} user={user} />}
       {user && isFeedbackModalOpen && (
         <FeedbackModal 
             user={user}

@@ -39,12 +39,62 @@ The platform operates on a hybrid architecture using **Local Storage** for rapid
 
 ### 5. Advanced UI/UX
 *   **AI Chatbot:** A persistent, voice-capable assistant that can answer health questions and **navigate the app** via voice commands (e.g., "Take me to the symptom checker").
+    *   **Voice-First Responsiveness:** Features auto-send on silence detection, smart voice output (always speaks back to voice input), and visual "speaking" indicators.
 *   **Admin Dashboard:** A comprehensive dashboard for viewing all registered users and global activity logs. *Note: For the current demo phase, all signed-up users are granted admin access.*
 *   **Multilingual Support:** Full UI and AI response support for **15+ languages**, including major Indic languages (Hindi, Telugu, Bengali, Tamil, etc.).
 
 ---
 
-## 🛠 Technical Architecture
+## 🛠 Supabase Integration (New)
+
+The app is now integrated with Supabase for centralized data storage and "pin-to-pinpoint" action tracking.
+
+### Setup Instructions
+
+1.  **Create a Supabase Project:** Go to [supabase.com](https://supabase.com) and create a new project.
+2.  **Run SQL in Supabase SQL Editor:**
+    ```sql
+    -- 1. Create users table
+    CREATE TABLE IF NOT EXISTS users (
+        phone TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT,
+        password TEXT NOT NULL,
+        date_of_birth TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        last_login_at TIMESTAMP WITH TIME ZONE,
+        is_admin BOOLEAN DEFAULT FALSE
+    );
+
+    -- 2. Create activity_history table
+    CREATE TABLE IF NOT EXISTS activity_history (
+        id BIGSERIAL PRIMARY KEY,
+        user_phone TEXT REFERENCES users(phone),
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        data JSONB,
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+
+    -- 3. Create water_log table
+    CREATE TABLE IF NOT EXISTS water_log (
+        id BIGSERIAL PRIMARY KEY,
+        user_phone TEXT REFERENCES users(phone),
+        amount INTEGER NOT NULL,
+        timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+
+    -- 4. Enable Row Level Security (RLS)
+    ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE activity_history ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE water_log ENABLE ROW LEVEL SECURITY;
+
+    -- 5. Create Policies (Allow all for simplicity)
+    CREATE POLICY "Allow all access to users" ON users FOR ALL USING (true);
+    CREATE POLICY "Allow all access to activity_history" ON activity_history FOR ALL USING (true);
+    CREATE POLICY "Allow all access to water_log" ON water_log FOR ALL USING (true);
+    ```
+3.  **Environment Variables:** Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to your `.env` file (see `.env.example`).
 
 Artha is built with a modern, performance-oriented stack:
 

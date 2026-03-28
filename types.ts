@@ -33,7 +33,7 @@ export interface ActivityLogItem {
   id: string;
   timestamp: number;
   userPhone: string;
-  type: 'image-analysis' | 'prescription-analysis' | 'mental-health' | 'symptom-checker' | 'login';
+  type: 'image-analysis' | 'prescription-analysis' | 'mental-health' | 'symptom-checker' | 'login' | 'navigation' | 'chatbot';
   title: string;
   data: any;
   language?: string;

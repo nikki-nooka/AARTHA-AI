@@ -221,13 +221,29 @@ export const getBotCommand = async (prompt: string, language: string, availableP
         Current Language: ${language}
         Available Pages for Navigation: ${availablePages.join(', ')}
         
+        Page Descriptions:
+        - welcome: The home/dashboard page.
+        - image-analysis: Analyze environmental health from an image.
+        - prescription-analysis: Scan and analyze medical prescriptions.
+        - mental-health: Wellness and mental health check-in.
+        - symptom-checker: Check symptoms and get triage advice.
+        - checkup: Schedule a personalized in-person health check-up or visit.
+        - water-log: Track daily water intake.
+        - activity-history: View past health analyses and logs.
+        - profile: User profile and settings.
+        - about: Information about GeoSick.
+        - contact: Contact support or the team.
+        - explore: Interactive globe to explore health data.
+        - partners: Information for health partners and branches.
+        - admin-dashboard: Admin view for system activity.
+        
         Your task is to determine the user's intent and return a JSON response with:
         1. action: 'navigate' or 'speak'
         2. page: the page to navigate to (if action is 'navigate')
-        3. responseText: a helpful response in ${language}
+        3. responseText: a helpful response in ${language} explaining what you are doing.
         
         Rules:
-        - If the user wants to go somewhere (e.g., "check symptoms", "analyze image", "see history"), set action to 'navigate' and pick the most relevant page.
+        - If the user wants to go somewhere (e.g., "schedule a check up", "check symptoms", "analyze image", "see history"), set action to 'navigate' and pick the most relevant page from the list above.
         - If the user asks a question or just wants to chat, set action to 'speak' and provide a helpful response.
         - Be concise and friendly.
         

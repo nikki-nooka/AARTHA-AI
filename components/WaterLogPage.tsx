@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { WaterLogSettings, WaterLogEntry } from '../types';
+import type { WaterLogSettings, WaterLogEntry, User } from '../types';
 import { BackButton } from './BackButton';
 import { GlassWaterIcon, BellIcon, ClockIcon } from './icons';
+import { supabase } from '../src/lib/supabase';
 
 interface WaterLogPageProps {
   onBack: () => void;
+  user: User | null;
 }
 
 const WATER_LOG_SETTINGS_KEY = 'geosick_waterlog_settings';
@@ -65,7 +67,7 @@ const useWaterReminder = (settings: WaterLogSettings['notifications']) => {
   }, [settings]);
 };
 
-export const WaterLogPage: React.FC<WaterLogPageProps> = ({ onBack }) => {
+export const WaterLogPage: React.FC<WaterLogPageProps> = ({ onBack, user }) => {
   const [settings, setSettings] = useState<WaterLogSettings>(DEFAULT_SETTINGS);
   const [log, setLog] = useState<WaterLogEntry[]>([]);
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
@@ -113,7 +115,7 @@ export const WaterLogPage: React.FC<WaterLogPageProps> = ({ onBack }) => {
       localStorage.setItem(WATER_LOG_SETTINGS_KEY, JSON.stringify(newSettings));
   };
   
-  const addWater = (amount: number) => {
+  const addWater = async (amount: number) => {
     if (amount <= 0) return;
     const newEntry: WaterLogEntry = {
       id: new Date().toISOString(),
@@ -123,6 +125,22 @@ export const WaterLogPage: React.FC<WaterLogPageProps> = ({ onBack }) => {
     const newLog = [newEntry, ...log];
     setLog(newLog);
     localStorage.setItem(WATER_LOG_TODAY_KEY, JSON.stringify(newLog));
+
+    // Sync with Supabase
+    if (user) {
+        try {
+            const { error } = await supabase
+                .from('water_log')
+                .insert({
+                    user_phone: user.phone,
+                    amount,
+                    timestamp: new Date(newEntry.timestamp).toISOString()
+                });
+            if (error) console.error("Supabase water log sync error:", error);
+        } catch (e) {
+            console.error("Supabase water log sync failed:", e);
+        }
+    }
   };
   
   const requestNotificationPermission = async () => {

@@ -4,7 +4,7 @@ import type { User } from '../types';
 import { UserIcon, AtSymbolIcon, PhoneIcon, GlobeIcon, CalendarIcon, IdentificationIcon, LockClosedIcon, CloseIcon, ClockIcon } from './icons';
 import { BackButton } from './BackButton';
 
-const USERS_KEY = 'geosick_users';
+const USERS_KEY = 'artha_users';
 
 interface ProfilePageProps {
   user: User;
@@ -141,7 +141,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, onBack, onUpdate
                     </div>
                 </div>
             </main>
-            {isPasswordModalOpen && <ChangePasswordModal user={user} onClose={() => setIsPasswordModalOpen(false)} />}
+            {isPasswordModalOpen && <ChangePasswordModal user={user} onClose={() => setIsPasswordModalOpen(false)} onUpdateUser={onUpdateUser} />}
         </div>
     );
 };
@@ -180,7 +180,7 @@ const AccountInfoField: React.FC<{ icon: React.ReactNode; label: string; value: 
     </div>
 );
 
-const ChangePasswordModal: React.FC<{ user: User, onClose: () => void }> = ({ user, onClose }) => {
+const ChangePasswordModal: React.FC<{ user: User, onClose: () => void, onUpdateUser: (details: Partial<User>) => Promise<boolean> }> = ({ user, onClose, onUpdateUser }) => {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -188,7 +188,7 @@ const ChangePasswordModal: React.FC<{ user: User, onClose: () => void }> = ({ us
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
@@ -203,30 +203,33 @@ const ChangePasswordModal: React.FC<{ user: User, onClose: () => void }> = ({ us
         }
 
         setIsLoading(true);
-        setTimeout(() => {
-            try {
-                const allUsers: any[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-                const userIndex = allUsers.findIndex(u => u.phone === user.phone);
+        try {
+            // Verify current password from local storage
+            const allUsers: any[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+            const userInStorage = allUsers.find(u => u.phone === user.phone);
 
-                if (userIndex === -1 || allUsers[userIndex].password !== currentPassword) {
-                    throw new Error("Your current password is not correct.");
-                }
+            if (!userInStorage || userInStorage.password !== currentPassword) {
+                throw new Error("Your current password is not correct.");
+            }
 
-                allUsers[userIndex].password = newPassword;
-                localStorage.setItem(USERS_KEY, JSON.stringify(allUsers));
-                
+            // Use the centralized update function which handles both local storage and Supabase sync
+            const updateSuccess = await onUpdateUser({ password: newPassword });
+
+            if (updateSuccess) {
                 setSuccess("Password changed successfully!");
                 setCurrentPassword('');
                 setNewPassword('');
                 setConfirmPassword('');
                 setTimeout(onClose, 1500);
-
-            } catch (err: any) {
-                setError(err.message || "An error occurred.");
-            } finally {
-                setIsLoading(false);
+            } else {
+                throw new Error("Failed to update password. Please try again.");
             }
-        }, 500);
+        } catch (err: any) {
+            console.error("Password change error:", err);
+            setError(err.message || "An error occurred.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

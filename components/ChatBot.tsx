@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { getBotCommand } from '../services/geminiService';
-import type { ChatMessage, Page } from '../types';
+import { supabase } from '../src/lib/supabase';
+import type { ChatMessage, Page, User } from '../types';
 import { BotIcon, SendIcon, CloseIcon, ChevronDownIcon, MicrophoneIcon, SpeakerWaveIcon, SpeakerXMarkIcon, SparklesIcon, TrashIcon } from './icons';
 import { useI18n } from './I18n';
 import { supportedLanguages } from '../data/translations';
@@ -8,6 +9,7 @@ import { LanguageSelector } from './LanguageSelector';
 
 interface ChatBotProps {
     onNavigate: (page: Page) => void;
+    user: User | null;
 }
 
 // Manually defining SpeechRecognition for browsers that support it to resolve TypeScript error.
@@ -25,7 +27,7 @@ interface SpeechRecognition {
 // For cross-browser compatibility
 const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
+export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate, user }) => {
     const CHATS_STORAGE_KEY = 'geosick_chat_history';
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -35,13 +37,16 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
     const { language: selectedLanguage, t } = useI18n();
     
     const [isListening, setIsListening] = useState(false);
+    const [wasVoiceInput, setWasVoiceInput] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const isSpeechSupported = !!SpeechRecognitionAPI;
 
     const [isMuted, setIsMuted] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | null>(null);
     const [isVoiceAvailable, setIsVoiceAvailable] = useState(true);
+    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Load messages from localStorage on mount
     useEffect(() => {
@@ -119,8 +124,12 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
             utterance.voice = selectedVoice;
         }
         utterance.lang = selectedLanguage;
-        utterance.rate = 1;
+        utterance.rate = 1.05; // Slightly faster for responsiveness
         utterance.pitch = 1;
+
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
 
         setTimeout(() => window.speechSynthesis.speak(utterance), 100);
     };
@@ -142,10 +151,22 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
 
         recognition.onresult = (event: any) => {
             let fullTranscript = '';
+            let isFinal = false;
             for (let i = 0; i < event.results.length; i++) {
                 fullTranscript += event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    isFinal = true;
+                }
             }
             setInput(fullTranscript);
+
+            // Auto-send logic: if we have a final result, wait a bit for more speech, then send
+            if (isFinal) {
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                silenceTimerRef.current = setTimeout(() => {
+                    handleSend(true);
+                }, 1500);
+            }
         };
 
         recognition.onerror = (event: any) => {
@@ -170,8 +191,9 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const handleSend = async () => {
-        if (input.trim() === '' || isLoading) return;
+    const handleSend = async (isVoice: boolean = false) => {
+        const currentInput = input.trim();
+        if (currentInput === '' || isLoading) return;
         
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
@@ -179,29 +201,47 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
             recognitionRef.current.stop();
         }
 
-        const userMessageText = input;
+        const userMessageText = currentInput;
         const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', text: userMessageText };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
+        setWasVoiceInput(isVoice);
 
         const botMessageId = (Date.now() + 1).toString();
         setMessages(prev => [...prev, { id: botMessageId, role: 'bot', text: '...' }]);
 
         try {
-            const availablePages: Page[] = ['welcome', 'image-analysis', 'prescription-analysis', 'mental-health', 'symptom-checker', 'activity-history', 'profile', 'about', 'contact', 'explore', 'partners'];
+            const availablePages: Page[] = ['welcome', 'image-analysis', 'prescription-analysis', 'mental-health', 'symptom-checker', 'activity-history', 'profile', 'about', 'contact', 'explore', 'partners', 'checkup', 'water-log', 'admin-dashboard', 'health-briefing'];
             const languageName = supportedLanguages.find(l => l.code === selectedLanguage)?.name || 'English';
             
             const commandResponse = await getBotCommand(userMessageText, languageName, availablePages);
             
             setMessages(prev => prev.map(msg => msg.id === botMessageId ? { ...msg, text: commandResponse.responseText } : msg));
-            speak(commandResponse.responseText);
+            
+            // Sync with Supabase
+            if (user) {
+                supabase.from('activity_history').insert({
+                    user_phone: user.phone,
+                    type: 'chatbot',
+                    title: 'Chatbot interaction',
+                    data: { userMessage: userMessageText, botResponse: commandResponse.responseText, action: commandResponse.action, page: commandResponse.page },
+                    timestamp: new Date().toISOString()
+                }).then(({ error }) => {
+                    if (error) console.error("Supabase chatbot sync error:", error);
+                });
+            }
+
+            // Only speak if it was voice input OR if not muted
+            if (isVoice || !isMuted) {
+                speak(commandResponse.responseText);
+            }
             
             if (commandResponse.action === 'navigate' && commandResponse.page) {
                 setTimeout(() => {
                     onNavigate(commandResponse.page!);
                     setIsOpen(false);
-                }, 1200);
+                }, 1500);
             }
         } catch (error) {
             console.error('Chatbot error:', error);
@@ -223,9 +263,13 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
     const handleToggleListening = () => {
         if (!recognitionRef.current) return;
         if (isListening) {
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
             recognitionRef.current.stop();
+            if (input.trim()) handleSend(true);
         } else {
             setInput('');
+            setWasVoiceInput(true);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             try {
                 recognitionRef.current.start();
                 setIsListening(true);
@@ -240,10 +284,12 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
         <>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="fixed bottom-6 right-6 bg-blue-500 text-white rounded-full p-3 shadow-lg hover:bg-blue-600 transition-transform transform hover:scale-110 z-50"
+                className={`fixed bottom-6 right-6 text-white rounded-full p-3 shadow-lg transition-all transform hover:scale-110 z-50 ${
+                    isSpeaking ? 'bg-green-500 animate-pulse' : 'bg-blue-500 hover:bg-blue-600'
+                }`}
                 aria-label="Toggle Chatbot"
             >
-                {isOpen ? <CloseIcon className="w-7 h-7"/> : <SparklesIcon className="w-7 h-7" />}
+                {isOpen ? <CloseIcon className="w-7 h-7"/> : (isSpeaking ? <SpeakerWaveIcon className="w-7 h-7" /> : <SparklesIcon className="w-7 h-7" />)}
             </button>
 
             {isOpen && (
@@ -278,7 +324,11 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
                     <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50">
                         {messages.map((msg) => (
                             <div key={msg.id} className={`flex items-end gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.role === 'bot' && <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0"><BotIcon className="w-5 h-5 text-slate-500" /></div>}
+                                 {msg.role === 'bot' && (
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isSpeaking && msg.id === messages[messages.length - 1]?.id ? 'bg-green-100 animate-pulse' : 'bg-slate-200'}`}>
+                                        {isSpeaking && msg.id === messages[messages.length - 1]?.id ? <SpeakerWaveIcon className="w-5 h-5 text-green-600" /> : <BotIcon className="w-5 h-5 text-slate-500" />}
+                                    </div>
+                                )}
                                 <div className={`max-w-[80%] p-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-lg' : 'bg-slate-200 text-slate-800 rounded-bl-lg'}`}>
                                     <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
                                 </div>
@@ -324,7 +374,7 @@ export const ChatBot: React.FC<ChatBotProps> = ({ onNavigate }) => {
                                     <MicrophoneIcon className="w-6 h-6" />
                                 </button>
                             )}
-                            <button onClick={handleSend} disabled={isLoading || !input} className="p-2 text-blue-500 disabled:text-slate-400 hover:text-blue-600 transition-colors">
+                            <button onClick={() => handleSend(false)} disabled={isLoading || !input} className="p-2 text-blue-500 disabled:text-slate-400 hover:text-blue-600 transition-colors">
                                 <SendIcon className="w-6 h-6"/>
                             </button>
                         </div>

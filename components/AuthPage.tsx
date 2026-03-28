@@ -4,12 +4,14 @@ import { CloseIcon, GlobeIcon, PhoneIcon, LockClosedIcon, UserIcon, CalendarIcon
 import RotatingGlobe from './RotatingGlobe';
 import type { User } from '../types';
 
+import { supabase } from '../src/lib/supabase';
+
 interface AuthPageProps {
   onClose: () => void;
   onAuthSuccess: (user: User) => void;
 }
 
-const USERS_KEY = 'geosick_users';
+const USERS_KEY = 'artha_users';
 
 type ViewMode = 'login' | 'signup';
 
@@ -91,7 +93,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onAuthSuccess }) =>
     setIsLoading(true);
     
     try {
-        await new Promise(res => setTimeout(res, 500));
+        await new Promise(res => setTimeout(res, 5000));
         const allUsers: any[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
 
         const phoneExists = allUsers.some(u => u.phone === phone.trim());
@@ -116,6 +118,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onClose, onAuthSuccess }) =>
             isAdmin: isSigningUpAsAdmin,
         };
         
+        console.log("Sign up successful locally, calling onAuthSuccess for:", newUser.phone);
         allUsers.push(newUser);
         localStorage.setItem(USERS_KEY, JSON.stringify(allUsers));
 

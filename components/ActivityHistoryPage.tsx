@@ -64,6 +64,8 @@ const ActivityIcon: React.FC<{ type: ActivityLogItem['type'] }> = ({ type }) => 
 export const ActivityHistoryPage: React.FC<ActivityHistoryPageProps> = ({ history, onBack }) => {
     const [selectedItem, setSelectedItem] = useState<ActivityLogItem | null>(null);
 
+    const filteredHistory = (history || []).filter(item => !['navigation', 'chatbot'].includes(item.type));
+
     return (
     <div className="w-full min-h-screen p-4 sm:p-6 lg:p-8 flex flex-col items-center animate-fade-in bg-slate-50">
         <header className="w-full max-w-2xl mx-auto mb-8">
@@ -76,15 +78,15 @@ export const ActivityHistoryPage: React.FC<ActivityHistoryPageProps> = ({ histor
                     <h1 className="text-3xl md:text-4xl font-bold text-slate-800 tracking-tight">
                         Activity History
                     </h1>
-                    <p className="text-slate-600">A log of your recent analyses.</p>
+                    <p className="text-slate-600">A log of your recent health analyses.</p>
                 </div>
             </div>
         </header>
 
         <main className="w-full max-w-2xl mx-auto">
-            {history && history.length > 0 ? (
+            {filteredHistory && filteredHistory.length > 0 ? (
                 <div className="space-y-4">
-                    {(history || []).map(item => (
+                    {filteredHistory.map(item => (
                         <button
                             key={item.id}
                             onClick={() => setSelectedItem(item)}

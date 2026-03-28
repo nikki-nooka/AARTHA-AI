@@ -4,6 +4,7 @@ import type { User, ActivityLogItem } from '../types';
 import { LockClosedIcon, ListBulletIcon, ScanIcon, ClipboardListIcon, BrainCircuitIcon, StethoscopeIcon, UserGroupIcon, DocumentChartBarIcon, ShieldCheckIcon, UsersIcon, ActivityIcon as ActivityChartIcon, ArrowTrendingUpIcon, GlobeAltIcon, ClockIcon } from './icons';
 import { BackButton } from './BackButton';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../src/lib/supabase';
 
 const USERS_KEY = 'artha_users';
 const GLOBAL_ACTIVITY_HISTORY_KEY = 'artha_global_activity_history';
@@ -30,31 +31,137 @@ const ActivityIcon: React.FC<{ type: ActivityLogItem['type'] }> = ({ type }) => 
 
 interface AdminDashboardPageProps {
   onBack: () => void;
+  onSyncUser?: (user: User) => Promise<void>;
 }
 
-export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }) => {
+export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack, onSyncUser }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [activities, setActivities] = useState<ActivityLogItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch users from Supabase
+            const { data: supabaseUsers, error: usersError } = await supabase
+                .from('users')
+                .select('*');
+            
+            if (usersError) {
+                console.warn("Supabase users fetch error:", usersError.message);
+                throw usersError;
+            }
+
+            // Fetch activities from Supabase
+            const { data: supabaseActivities, error: activitiesError } = await supabase
+                .from('activity_history')
+                .select('*');
+            
+            if (activitiesError) {
+                console.warn("Supabase activities fetch error:", activitiesError.message);
+                throw activitiesError;
+            }
+
+            setUsers((supabaseUsers || []).map((u: any) => ({
+                ...u,
+                isAdmin: u.is_admin || false
+            })));
+            
+            setActivities((supabaseActivities || []).map((a: any) => ({
+                id: a.id,
+                userPhone: a.user_phone,
+                type: a.type,
+                title: a.title,
+                data: a.data,
+                timestamp: a.timestamp ? new Date(a.timestamp).getTime() : Date.now()
+            })));
+        } catch (e) {
+            console.error("Failed to load admin data from Supabase", e);
+            // Fallback to local storage if Supabase fails
+            const storedUsers = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+            const storedActivities = JSON.parse(localStorage.getItem(GLOBAL_ACTIVITY_HISTORY_KEY) || '[]');
+            setUsers(Array.isArray(storedUsers) ? storedUsers : []);
+            setActivities(Array.isArray(storedActivities) ? storedActivities : []);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            try {
-                // Simulate network delay
-                await new Promise(resolve => setTimeout(resolve, 800));
-                const storedUsers = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-                const storedActivities = JSON.parse(localStorage.getItem(GLOBAL_ACTIVITY_HISTORY_KEY) || '[]');
-                setUsers(Array.isArray(storedUsers) ? storedUsers : []);
-                setActivities(Array.isArray(storedActivities) ? storedActivities : []);
-            } catch (e) {
-                console.error("Failed to load admin data from localStorage", e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         loadData();
     }, []);
+
+    const handleSyncAll = async () => {
+        if (!supabase.supabaseUrl || !supabase.supabaseKey || supabase.supabaseUrl === '' || supabase.supabaseKey === '') {
+            setSyncStatus("Error: Supabase URL or Key is missing. Check settings.");
+            return;
+        }
+
+        setIsSyncing(true);
+        setSyncStatus("Starting sync...");
+        try {
+            const storedUsers: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+            let successCount = 0;
+            let failCount = 0;
+
+            const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> => {
+                return Promise.race([
+                    promise,
+                    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Request timed out")), timeoutMs))
+                ]);
+            };
+
+            for (const user of storedUsers) {
+                try {
+                    setSyncStatus(`Syncing user: ${user.name || user.phone}...`);
+                    const { error } = await withTimeout(supabase
+                        .from('users')
+                        .upsert({
+                            phone: user.phone,
+                            name: user.name,
+                            email: user.email,
+                            password: user.password,
+                            date_of_birth: user.date_of_birth,
+                            gender: user.gender,
+                            place: user.place,
+                            is_admin: user.isAdmin,
+                            last_login_at: user.last_login_at || new Date().toISOString()
+                        }, { onConflict: 'phone' }));
+                    
+                    if (error) {
+                        console.error(`Failed to sync user ${user.phone}:`, error.message);
+                        if (error.message.includes("Invalid API key") || error.message.includes("JWT")) {
+                            setSyncStatus("Error: Invalid Supabase API Key. Check settings.");
+                            setIsSyncing(false);
+                            return; // Stop sync if key is invalid
+                        }
+                        failCount++;
+                    } else {
+                        successCount++;
+                    }
+                } catch (err: any) {
+                    console.error(`Exception syncing user ${user.phone}:`, err);
+                    if (err.message && (err.message.includes("Invalid API key") || err.message.includes("timeout") || err.message.includes("JWT"))) {
+                        setSyncStatus(`Error: ${err.message}`);
+                        setIsSyncing(false);
+                        return;
+                    }
+                    failCount++;
+                }
+            }
+
+            setSyncStatus(`Sync complete: ${successCount} success, ${failCount} failed.`);
+            await loadData(); // Refresh list
+        } catch (e: any) {
+            console.error("Sync all failed:", e);
+            setSyncStatus(`Sync failed: ${e.message || "Unknown error"}`);
+        } finally {
+            setIsSyncing(false);
+            setTimeout(() => setSyncStatus(null), 5000);
+        }
+    };
 
     const nonAdminUsers = (users || []).filter(u => !u.isAdmin);
 
@@ -94,8 +201,25 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onBack }
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
-                            className="flex gap-4"
+                            className="flex flex-wrap gap-4 items-center"
                         >
+                            <button 
+                                onClick={handleSyncAll}
+                                disabled={isSyncing}
+                                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                                    isSyncing 
+                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+                                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm'
+                                }`}
+                            >
+                                <ArrowTrendingUpIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                                {isSyncing ? 'Syncing...' : 'Sync All to Supabase'}
+                            </button>
+
+                            {syncStatus && (
+                                <span className="text-xs font-medium text-indigo-500 animate-pulse">{syncStatus}</span>
+                            )}
+
                             <div className="px-6 py-4 bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center justify-center min-w-[120px]">
                                 <span className="text-2xl font-black text-slate-900">{users.length}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Users</span>

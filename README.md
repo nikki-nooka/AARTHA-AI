@@ -6,9 +6,9 @@
 
 ## 🌍 Overview
 
-Artha is a sophisticated, AI-driven web application designed to bridge the critical gap between environmental factors and public health. By leveraging Google's **Gemini 2.5 Flash** and **Imagen 3/4** models, Artha provides users with real-time, location-specific health insights, proactive hazard detection, and personalized wellness tools.
+Artha is a sophisticated, AI-driven web application designed to bridge the critical gap between environmental factors and public health. By leveraging Google's **Gemini 3 Flash** and **Imagen 4** models, Artha provides users with real-time, location-specific health insights, proactive hazard detection, and personalized wellness tools.
 
-The platform operates on a "Simulated Backend" architecture using local storage, making it a privacy-focused, zero-setup demonstration of how Generative AI can revolutionize preventive healthcare.
+The platform operates on a hybrid architecture using **Local Storage** for rapid prototyping and **Firebase** for cloud-ready data persistence and security rules.
 
 ---
 
@@ -16,20 +16,21 @@ The platform operates on a "Simulated Backend" architecture using local storage,
 
 ### 1. Interactive 3D Globe Explorer
 *   **Visual Exploration:** A high-fidelity 3D globe (`react-globe.gl`) allowing users to explore any point on Earth.
-*   **City Health Snapshots:** Click on major cities to generate a real-time public health report derived from current web data (using Gemini Search Grounding). Includes disease trends, case estimates, and summaries.
+*   **City Health Snapshots:** Click on major cities to generate a real-time public health report derived from current web data (using **Google Search Grounding**). Includes disease trends, case estimates, and summaries.
 *   **Location Analysis:** Click any coordinate to generate a localized environmental hazard report and a synthetic satellite visualization of that specific biome using **Imagen 4.0**.
-*   **Geocoding:** Integrated search bar to fly to specific locations instantly.
+*   **Geocoding:** Integrated search bar to fly to specific locations instantly with high-accuracy coordinates.
 
 ### 2. AI Analysis Suite
+*   **🩺 Advanced Symptom Checker:** A voice-enabled interface with a sophisticated **4-Level Triage System** (Emergency, Urgent, Routine, Home Care). Provides color-coded visual feedback, potential conditions for discussion, and actionable next steps.
 *   **📸 Area Scan (Image Analysis):** Upload photos of your surroundings. The AI identifies potential health hazards (e.g., stagnant water, pollution) and suggests preventive measures.
-*   **📜 Prescription Reader:** Upload a doctor's prescription. The AI extracts medicine names, dosages, and precautions into a legible summary and helps find nearby pharmacies.
-*   **🩺 Symptom Checker:** Voice-enabled interface allowing users to describe symptoms naturally. The AI provides a cautious triage recommendation, potential conditions, and next steps.
-*   **🧠 Mental Wellness Check-in:** A compassionate, confidential questionnaire that provides a supportive reflection and coping strategies based on user responses.
+*   **📜 Prescription Reader:** Powered by a "Clinical Pharmacist" persona, it extracts medicine names, dosages, and precautions from images into a legible summary.
+*   **🧠 Mental Wellness Check-in:** A compassionate, non-clinical wellness assistant that provides supportive reflection and coping strategies based on user responses.
+*   **🏥 Personalized Health Visit:** A dedicated checkup interface featuring an integrated health assessment form for personalized medical consultations.
 
 ### 3. Real-Time Health Intelligence
-*   **HealthCast:** A daily, location-based health forecast analyzing risk factors like Air Quality, UV Index, Pollen, and Vector activity.
-*   **Live Health Alerts:** Aggregates and displays significant global and local disease outbreaks or environmental threats using Google Search Grounding.
-*   **Facility Finder:** Automatically locates nearby Hospitals, Clinics, and Pharmacies based on the user's GPS coordinates.
+*   **HealthCast:** A daily, location-based health forecast analyzing risk factors like Air Quality, UV Index, Pollen, and Mosquito activity using real-time data.
+*   **Live Health Alerts:** Aggregates and displays significant global and local disease outbreaks or environmental threats using **Google Search Grounding**.
+*   **Facility Finder:** Automatically locates the 5 closest Hospitals, Clinics, and Pharmacies based on the user's precise GPS coordinates using **Google Maps Grounding**.
 
 ### 4. Personal Health Utilities
 *   **💧 Water Log:** A hydration tracker with customizable goals and browser-based push notifications for drink reminders.
@@ -38,32 +39,35 @@ The platform operates on a "Simulated Backend" architecture using local storage,
 
 ### 5. Advanced UI/UX
 *   **AI Chatbot:** A persistent, voice-capable assistant that can answer health questions and **navigate the app** via voice commands (e.g., "Take me to the symptom checker").
-*   **Admin Dashboard:** A hidden dashboard for viewing all registered users and global activity logs.
+*   **Admin Dashboard:** A comprehensive dashboard for viewing all registered users and global activity logs. *Note: For the current demo phase, all signed-up users are granted admin access.*
 *   **Multilingual Support:** Full UI and AI response support for **15+ languages**, including major Indic languages (Hindi, Telugu, Bengali, Tamil, etc.).
 
 ---
 
 ## 🛠 Technical Architecture
 
-GeoSick is built with a modern, performance-oriented stack:
+Artha is built with a modern, performance-oriented stack:
 
 *   **Frontend Framework:** React 19 with TypeScript.
 *   **Build Tool:** Vite.
 *   **Styling:** Tailwind CSS with custom animations.
 *   **Artificial Intelligence:**
     *   **SDK:** `@google/genai`
-    *   **Text & Multimodal:** `gemini-2.5-flash` (Used for analysis, chat, and search grounding).
+    *   **Text & Multimodal:** `gemini-3-flash-preview` (Used for analysis, chat, and search grounding).
     *   **Image Generation:** `imagen-4.0-generate-001` (Used for location visualization).
-    *   **Search Grounding:** Integrated for retrieving real-time world events and health data.
+    *   **Search Grounding:** Integrated `googleSearch` and `googleMaps` tools for retrieving real-time world events and health data.
 *   **Visualization:** `react-globe.gl` and `three.js`.
-*   **Data Persistence:** `localStorage` (Acts as a client-side database for User Auth, Activity Logs, and Settings).
+*   **Backend & Security:**
+    *   **Firebase:** Configured for Firestore database and Authentication.
+    *   **Security Rules:** Prototype rules implemented to protect user data and manage roles.
+    *   **Local Storage:** Used for rapid client-side data handling and session management.
 *   **Browser APIs:** Web Speech API (Voice Input/Output), Geolocation API, Notification API.
 
 ---
 
 ## 📦 Installation & Setup
 
-Follow these steps to run GeoSick locally.
+Follow these steps to run Artha locally.
 
 ### Prerequisites
 *   Node.js (v18 or higher)
@@ -74,8 +78,8 @@ Follow these steps to run GeoSick locally.
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/your-username/geosick.git
-    cd geosick
+    git clone https://github.com/your-username/artha.git
+    cd artha
     ```
 
 2.  **Install Dependencies**
@@ -94,25 +98,23 @@ Follow these steps to run GeoSick locally.
     ```bash
     npm run dev
     ```
-    Access the app at `http://localhost:5173`.
+    Access the app at `http://localhost:3000`.
 
 ---
 
 ## 🔐 User & Admin Access (Demo Mode)
 
-Since the app uses local storage, you can create any account you like.
-
-**Default Admin Account (Auto-created on first load):**
+**Default Admin Account:**
 *   **Email:** `likhithapacha4@gmail.com`
 *   **Password:** `mahadev`
 
-*Log in with these credentials to access the **Admin Dashboard** in the sidebar.*
+*Log in with these credentials or create a new account to access the **Admin Dashboard** in the sidebar.*
 
 ---
 
 ## ⚠️ Medical Disclaimer
 
-**GeoSick is an informational tool powered by Artificial Intelligence.**
+**Artha is an informational tool powered by Artificial Intelligence.**
 
 *   It is **NOT** a substitute for professional medical advice, diagnosis, or treatment.
 *   Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
